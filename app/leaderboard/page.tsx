@@ -36,133 +36,35 @@ export default function LeaderboardPage() {
       setError(null)
 
       try {
-        // In a real app, this would be an API call
-        // const response = await fetch('/api/statistics/leaderboard')
+        // Fetch leaderboard data from the API
+        const response = await fetch("/api/leaderboard")
+        if (!response.ok) throw new Error("Failed to fetch leaderboard")
 
-        // Simulate API response with mock data
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        const mockLeaderboard: LeaderboardUser[] = [
-          {
-            id: "1",
-            name: "John Doe",
-            username: "johndoe",
-            points: 850,
-            correctPredictions: 42,
-            rank: 1,
-            avatar: null,
-          },
-          {
-            id: "2",
-            name: "Jane Smith",
-            username: "janesmith",
-            points: 780,
-            correctPredictions: 39,
-            rank: 2,
-            avatar: null,
-          },
-          {
-            id: "3",
-            name: "Robert Johnson",
-            username: "rjohnson",
-            points: 720,
-            correctPredictions: 36,
-            rank: 3,
-            avatar: null,
-          },
-          {
-            id: "4",
-            name: "Emily Davis",
-            username: "emilyd",
-            points: 690,
-            correctPredictions: 35,
-            rank: 4,
-            avatar: null,
-          },
-          {
-            id: "5",
-            name: "Michael Wilson",
-            username: "mwilson",
-            points: 650,
-            correctPredictions: 33,
-            rank: 5,
-            avatar: null,
-          },
-          {
-            id: "6",
-            name: "Sarah Brown",
-            username: "sarahb",
-            points: 620,
-            correctPredictions: 31,
-            rank: 6,
-            avatar: null,
-          },
-          {
-            id: "7",
-            name: "David Miller",
-            username: "dmiller",
-            points: 590,
-            correctPredictions: 30,
-            rank: 7,
-            avatar: null,
-          },
-          {
-            id: "8",
-            name: "Jennifer Taylor",
-            username: "jtaylor",
-            points: 560,
-            correctPredictions: 28,
-            rank: 8,
-            avatar: null,
-          },
-          {
-            id: "9",
-            name: "James Anderson",
-            username: "janderson",
-            points: 530,
-            correctPredictions: 27,
-            rank: 9,
-            avatar: null,
-          },
-          {
-            id: "10",
-            name: "Lisa Thomas",
-            username: "lthomas",
-            points: 500,
-            correctPredictions: 25,
-            rank: 10,
-            avatar: null,
-          },
-          {
-            id: "11",
-            name: "Daniel White",
-            username: "dwhite",
-            points: 480,
-            correctPredictions: 24,
-            rank: 11,
-            avatar: null,
-          },
-          {
-            id: "12",
-            name: "Michelle Clark",
-            username: "mclark",
-            points: 460,
-            correctPredictions: 23,
-            rank: 12,
-            avatar: null,
-          },
-        ]
-
-        setLeaderboardData(mockLeaderboard)
+        const data = await response.json()
+        setLeaderboardData(
+          data.users.map((user: any) => ({
+            id: user.id,
+            name: user.name,
+            username: user.username || user.name.toLowerCase().replace(/\s+/g, ""),
+            points: user.points,
+            correctPredictions: user.predictions || 0,
+            rank: user.rank || 0,
+            avatar: user.avatar || null,
+          })),
+        )
 
         // Find current user's rank if logged in
         if (user) {
-          const currentUser = mockLeaderboard.find((u) => u.id === user.id)
+          const currentUser = data.users.find((u: any) => u.id === user.id)
           if (currentUser) {
             setUserRank(currentUser.rank)
           } else {
-            // If user not in top leaderboard, set a mock rank
-            setUserRank(42)
+            // If user not in top leaderboard, fetch their rank separately
+            const userRankResponse = await fetch(`/api/statistics/user?userId=${user.id}`)
+            if (userRankResponse.ok) {
+              const userStats = await userRankResponse.json()
+              setUserRank(userStats.rank)
+            }
           }
         }
       } catch (err) {

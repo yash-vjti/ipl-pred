@@ -63,55 +63,14 @@ export default function StatisticsPage() {
       setError(null)
 
       try {
-        // In a real app, this would be an API call
-        // const response = await fetch(`/api/statistics?period=${timePeriod}`)
+        const response = await fetch(`/api/statistics?period=${timePeriod}`)
 
-        // Simulate API response with mock data
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        const mockStatistics: Statistics = {
-          users: {
-            total: 856,
-            active: 742,
-            inactive: 114,
-            admins: 5,
-            growth: {
-              daily: 12,
-              weekly: 68,
-              monthly: 245,
-            },
-            retention: 87.5,
-          },
-          polls: {
-            total: 48,
-            active: 5,
-            completed: 43,
-            totalVotes: 12456,
-            averageVotesPerPoll: 259.5,
-            mostPopular: {
-              id: "1",
-              teams: "Mumbai Indians vs Chennai Super Kings",
-              votes: 1245,
-            },
-          },
-          predictions: {
-            total: 8765,
-            accuracy: {
-              overall: 64.2,
-              matchWinner: 68.4,
-              manOfTheMatch: 42.7,
-            },
-            pointsAwarded: 245670,
-            averagePointsPerUser: 286.8,
-          },
-          teams: {
-            mostPredicted: "Mumbai Indians",
-            mostAccurate: "Chennai Super Kings",
-            leastAccurate: "Punjab Kings",
-          },
+        if (!response.ok) {
+          throw new Error("Failed to fetch statistics")
         }
 
-        setStatistics(mockStatistics)
+        const data = await response.json()
+        setStatistics(data)
       } catch (err) {
         console.error("Error fetching statistics:", err)
         setError("Failed to load statistics data. Please try again.")
@@ -123,7 +82,7 @@ export default function StatisticsPage() {
     fetchStatistics()
   }, [timePeriod])
 
-  // Calculate trend values (mock data)
+  // Calculate trend values
   const getTrend = (value: number, isPositive = true) => {
     return {
       value: isPositive ? `+${(value * 0.05).toFixed(1)}%` : `-${(value * 0.02).toFixed(1)}%`,
@@ -578,5 +537,47 @@ function StatCard({
       </CardContent>
     </Card>
   )
+}
+
+const mockStatistics: Statistics = {
+  users: {
+    total: 856,
+    active: 742,
+    inactive: 114,
+    admins: 5,
+    growth: {
+      daily: 12,
+      weekly: 68,
+      monthly: 245,
+    },
+    retention: 87.5,
+  },
+  polls: {
+    total: 48,
+    active: 5,
+    completed: 43,
+    totalVotes: 12456,
+    averageVotesPerPoll: 259.5,
+    mostPopular: {
+      id: "1",
+      teams: "Mumbai Indians vs Chennai Super Kings",
+      votes: 1245,
+    },
+  },
+  predictions: {
+    total: 8765,
+    accuracy: {
+      overall: 64.2,
+      matchWinner: 68.4,
+      manOfTheMatch: 42.7,
+    },
+    pointsAwarded: 245670,
+    averagePointsPerUser: 286.8,
+  },
+  teams: {
+    mostPredicted: "Mumbai Indians",
+    mostAccurate: "Chennai Super Kings",
+    leastAccurate: "Punjab Kings",
+  },
 }
 

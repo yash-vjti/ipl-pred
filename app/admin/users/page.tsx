@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,53 +32,32 @@ export default function UsersPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
+  // Add loading state
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   // Mock user data
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: "1",
-      name: "John Doe",
-      email: "john@example.com",
-      username: "johndoe",
-      role: "user",
-      status: "active",
-      predictions: 24,
-      points: 350,
-      avatar: "",
-    },
-    {
-      id: "2",
-      name: "Jane Smith",
-      email: "jane@example.com",
-      username: "janesmith",
-      role: "user",
-      status: "active",
-      predictions: 32,
-      points: 480,
-      avatar: "",
-    },
-    {
-      id: "3",
-      name: "Admin User",
-      email: "admin@example.com",
-      username: "adminuser",
-      role: "admin",
-      status: "active",
-      predictions: 28,
-      points: 420,
-      avatar: "",
-    },
-    {
-      id: "4",
-      name: "Bob Johnson",
-      email: "bob@example.com",
-      username: "bobjohnson",
-      role: "user",
-      status: "inactive",
-      predictions: 18,
-      points: 270,
-      avatar: "",
-    },
-  ])
+  const [users, setUsers] = useState<User[]>([])
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch("/api/users")
+        if (!response.ok) throw new Error("Failed to fetch users")
+
+        const data = await response.json()
+        setUsers(data.data)
+      } catch (error) {
+        console.error("Error fetching users:", error)
+        setError("Failed to load users. Please try again.")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchUsers()
+  }, [])
 
   const filteredUsers = users.filter(
     (user) =>
@@ -92,19 +71,34 @@ export default function UsersPage() {
     setIsDeleteDialogOpen(true)
   }
 
-  const confirmDeleteUser = () => {
+  const confirmDeleteUser = async () => {
     if (!selectedUser) return
 
-    // Filter out the selected user
-    setUsers(users.filter((user) => user.id !== selectedUser.id))
+    try {
+      const response = await fetch(`/api/users/${selectedUser.id}`, {
+        method: "DELETE",
+      })
 
-    toast({
-      title: "User deleted",
-      description: `${selectedUser.name} has been removed from the system.`,
-    })
+      if (!response.ok) throw new Error("Failed to delete user")
 
-    setIsDeleteDialogOpen(false)
-    setSelectedUser(null)
+      // Filter out the selected user
+      setUsers(users.filter((user) => user.id !== selectedUser.id))
+
+      toast({
+        title: "User deleted",
+        description: `${selectedUser.name} has been removed from the system.`,
+      })
+    } catch (error) {
+      console.error("Error deleting user:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete user. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleteDialogOpen(false)
+      setSelectedUser(null)
+    }
   }
 
   return (
@@ -149,7 +143,19 @@ export default function UsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.length > 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                    Loading users...
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-6 text-red-500">
+                    Error: {error}
+                  </TableCell>
+                </TableRow>
+              ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>

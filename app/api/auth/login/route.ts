@@ -1,46 +1,78 @@
 import { NextResponse } from "next/server"
+import { cookies } from "next/headers"
+import { sign } from "jsonwebtoken"
+import { z } from "zod"
+import { db } from "@/lib/db"
+import { comparePassword } from "@/lib/auth"
 
-// Mock user database
-const users = [
-  {
-    id: "1",
-    name: "User Account",
-    email: "user@example.com",
-    password: "password", // In a real app, this would be hashed
-    role: "user",
-  },
-  {
-    id: "2",
-    name: "Admin Account",
-    email: "admin@example.com",
-    password: "password", // In a real app, this would be hashed
-    role: "admin",
-  },
-]
+// Input validation schema
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  rememberMe: z.boolean().optional(),
+})
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { email, password } = body
 
     // Validate input
-    if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
+    const result = loginSchema.safeParse(body)
+    if (!result.success) {
+      return NextResponse.json({ error: "Validation failed", details: result.error.format() }, { status: 400 })
     }
 
-    // Find user by email
-    const user = users.find((u) => u.email === email)
+    const { email, password, rememberMe } = result.data
 
-    // Check if user exists and password matches
-    if (!user || user.password !== password) {
+    // Find user by email
+    const user = await db.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        password: true,
+        role: true,
+        username: true,
+        image: true,
+        avatar: true,
+      },
+    })
+
+    if (!user) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
     }
 
-    // In a real app, you would:
-    // 1. Generate a JWT token
-    // 2. Set cookies or return the token
-    // 3. Include user data without sensitive information
+    // Verify password
+    const passwordMatch = await comparePassword(password, user.password)
+    if (!passwordMatch) {
+      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
+    }
 
+    // Create JWT token
+    const token = sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+      process.env.JWT_SECRET || "fallback_secret",
+      {
+        expiresIn: rememberMe ? "30d" : "24h",
+      },
+    )
+
+    // Set cookie
+    const cookieStore = cookies()
+    cookieStore.set("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60, // 30 days or 24 hours
+      path: "/",
+    })
+
+    // Return user data without password
     const { password: _, ...userWithoutPassword } = user
 
     return NextResponse.json({

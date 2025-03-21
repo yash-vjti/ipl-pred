@@ -34,6 +34,7 @@ export default function PollPage({ params }: { params: { id: string } }) {
     const loadPoll = async () => {
       try {
         const pollData = await fetchPoll(params.id)
+        console.log("Poll data:", pollData)
         setPoll(pollData)
 
         // Check if user has already voted
@@ -71,7 +72,7 @@ export default function PollPage({ params }: { params: { id: string } }) {
     }
 
     loadPoll()
-  }, [fetchPoll, params.id, user, toast])
+  }, [fetchPoll, user, toast])
 
   const handleSubmit = async () => {
     if (!user) {
@@ -292,7 +293,7 @@ export default function PollPage({ params }: { params: { id: string } }) {
                 <h3 className="font-medium">Predict the Match Winner</h3>
                 <RadioGroup value={selectedTeam || ""} onValueChange={setSelectedTeam}>
                   <div className="flex flex-col gap-3">
-                    {poll.options.map((option) => (
+                    {poll.data.options.map((option) => (
                       <div key={option.id} className="flex items-center space-x-2">
                         <RadioGroupItem value={option.id} id={`team-${option.id}`} />
                         <Label htmlFor={`team-${option.id}`}>{option.text}</Label>

@@ -1,102 +1,58 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { updateUserSettings, getUserSettings } from "@/lib/db"
 
-// Mock user settings data
-const userSettings = new Map([
-  [
-    "1",
-    {
-      notifications: {
-        emailNotifications: true,
-        pollReminders: true,
-        resultNotifications: false,
-        leaderboardUpdates: true,
-        newPollNotifications: true,
-        predictionResults: true,
-        systemAnnouncements: true,
-      },
-      privacy: {
-        showProfilePublicly: true,
-        showPredictionsPublicly: true,
-        showPointsPublicly: true,
-        allowTagging: true,
-      },
-      theme: {
-        darkMode: false,
-        highContrast: false,
-        reducedMotion: false,
-      },
-    },
-  ],
-  [
-    "2",
-    {
-      notifications: {
-        emailNotifications: true,
-        pollReminders: true,
-        resultNotifications: true,
-        leaderboardUpdates: true,
-        newPollNotifications: true,
-        predictionResults: true,
-        systemAnnouncements: true,
-      },
-      privacy: {
-        showProfilePublicly: true,
-        showPredictionsPublicly: false,
-        showPointsPublicly: true,
-        allowTagging: false,
-      },
-      theme: {
-        darkMode: true,
-        highContrast: false,
-        reducedMotion: false,
-      },
-    },
-  ],
-])
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const userId = searchParams.get("userId")
+    // Check if user is authenticated
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
-  if (!userId) {
-    return NextResponse.json({ error: "User ID is required" }, { status: 400 })
+    const userId = session.user.id
+    const settings = await getUserSettings(userId)
+
+    return NextResponse.json({ settings })
+  } catch (error) {
+    console.error("Error fetching user settings:", error)
+    return NextResponse.json({ error: "Failed to fetch settings" }, { status: 500 })
   }
-
-  const settings = userSettings.get(userId)
-
-  if (!settings) {
-    return NextResponse.json({ error: "Settings not found" }, { status: 404 })
-  }
-
-  return NextResponse.json(settings)
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get("userId")
-    const body = await request.json()
+    const session = await getServerSession(authOptions)
 
-    if (!userId) {
-      return NextResponse.json({ error: "User ID is required" }, { status: 400 })
+    // Check if user is authenticated
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Validate settings object
-    if (!body.notifications || !body.privacy || !body.theme) {
-      return NextResponse.json({ error: "Invalid settings object" }, { status: 400 })
+    const userId = session.user.id
+    const { notifications, privacy, theme } = await request.json()
+
+    // Validate the settings data
+    if (!notifications && !privacy && !theme) {
+      return NextResponse.json({ error: "No settings provided" }, { status: 400 })
     }
 
-    // Update settings
-    userSettings.set(userId, {
-      notifications: body.notifications,
-      privacy: body.privacy,
-      theme: body.theme,
+    // Update the settings
+    await updateUserSettings(userId, {
+      notifications,
+      privacy,
+      theme,
     })
 
-    return NextResponse.json({ message: "Settings updated successfully" })
+    return NextResponse.json({
+      success: true,
+      message: "Settings updated successfully",
+    })
   } catch (error) {
-    console.error("Update settings error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Error updating user settings:", error)
+    return NextResponse.json({ error: "Failed to update settings" }, { status: 500 })
   }
 }
 

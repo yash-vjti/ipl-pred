@@ -33,51 +33,14 @@ export default function NotificationsPage() {
 
       setIsLoading(true)
       try {
-        // In a real app, this would be an API call
-        // const response = await fetch(`/api/notifications?userId=${user.id}`)
+        const response = await fetch("/api/notifications")
 
-        // Simulate API response with mock data
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        if (!response.ok) {
+          throw new Error("Failed to fetch notifications")
+        }
 
-        const mockNotifications: Notification[] = [
-          {
-            id: "1",
-            type: "poll_created",
-            message: "New poll created: Mumbai Indians vs Chennai Super Kings",
-            isRead: false,
-            createdAt: "2025-03-20T10:30:00",
-          },
-          {
-            id: "2",
-            type: "poll_ending",
-            message: "Poll ending soon: Royal Challengers Bangalore vs Delhi Capitals",
-            isRead: true,
-            createdAt: "2025-03-19T15:45:00",
-          },
-          {
-            id: "3",
-            type: "prediction_result",
-            message: "Your prediction was correct! You earned 30 points.",
-            isRead: false,
-            createdAt: "2025-03-18T22:10:00",
-          },
-          {
-            id: "4",
-            type: "system",
-            message: "Welcome to IPL Prediction Portal! Start making predictions to earn points.",
-            isRead: true,
-            createdAt: "2025-03-15T09:00:00",
-          },
-          {
-            id: "5",
-            type: "leaderboard",
-            message: "You've moved up 5 positions on the leaderboard!",
-            isRead: false,
-            createdAt: "2025-03-17T14:20:00",
-          },
-        ]
-
-        setNotifications(mockNotifications)
+        const data = await response.json()
+        setNotifications(data.notifications)
       } catch (error) {
         console.error("Error fetching notifications:", error)
         setError("Failed to load notifications. Please try again.")
@@ -91,13 +54,27 @@ export default function NotificationsPage() {
 
   const markAsRead = async (id: string) => {
     try {
-      // In a real app, this would be an API call
-      // await fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+      const response = await fetch(`/api/notifications/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isRead: true }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to mark notification as read")
+      }
 
       // Update local state
       setNotifications((prev) =>
         prev.map((notification) => (notification.id === id ? { ...notification, isRead: true } : notification)),
       )
+
+      toast({
+        title: "Success",
+        description: "Notification marked as read.",
+      })
     } catch (error) {
       console.error("Error marking notification as read:", error)
       toast({
@@ -110,8 +87,17 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     try {
-      // In a real app, this would be an API call
-      // await fetch(`/api/notifications/read-all?userId=${user.id}`, { method: 'POST' })
+      const response = await fetch("/api/notifications", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ markAllAsRead: true }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to mark all notifications as read")
+      }
 
       // Update local state
       setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })))
@@ -282,3 +268,41 @@ export default function NotificationsPage() {
   )
 }
 
+
+const mockNotifications: Notification[] = [
+  {
+    id: "1",
+    type: "poll_created",
+    message: "New poll created: Mumbai Indians vs Chennai Super Kings",
+    isRead: false,
+    createdAt: "2025-03-20T10:30:00",
+  },
+  {
+    id: "2",
+    type: "poll_ending",
+    message: "Poll ending soon: Royal Challengers Bangalore vs Delhi Capitals",
+    isRead: true,
+    createdAt: "2025-03-19T15:45:00",
+  },
+  {
+    id: "3",
+    type: "prediction_result",
+    message: "Your prediction was correct! You earned 30 points.",
+    isRead: false,
+    createdAt: "2025-03-18T22:10:00",
+  },
+  {
+    id: "4",
+    type: "system",
+    message: "Welcome to IPL Prediction Portal! Start making predictions to earn points.",
+    isRead: true,
+    createdAt: "2025-03-15T09:00:00",
+  },
+  {
+    id: "5",
+    type: "leaderboard",
+    message: "You've moved up 5 positions on the leaderboard!",
+    isRead: false,
+    createdAt: "2025-03-17T14:20:00",
+  },
+]

@@ -31,7 +31,7 @@ const polls = [
       { id: 2, text: "Chennai Super Kings", votes: 312 },
     ],
     totalVotes: 557,
-    status: "active",
+    status: "ACTIVE",
     expiresAt: "2025-04-10T17:30:00",
   },
   {
@@ -46,7 +46,7 @@ const polls = [
       { id: 4, text: "Ravindra Jadeja", votes: 87 },
     ],
     totalVotes: 544,
-    status: "active",
+    status: "ACTIVE",
     expiresAt: "2025-04-10T17:30:00",
   },
   {
@@ -167,8 +167,8 @@ export default function AdminPage() {
                         {poll.totalVotes} votes • Expires: {new Date(poll.expiresAt).toLocaleString()}
                       </div>
                       <div className="flex items-center mt-2">
-                        <Badge variant={poll.status === "active" ? "default" : "secondary"}>
-                          {poll.status === "active" ? "Active" : "Closed"}
+                        <Badge variant={poll.status === "ACTIVE" ? "default" : "secondary"}>
+                          {poll.status === "ACTIVE" ? "Active" : "Closed"}
                         </Badge>
                         <Badge variant="outline" className="ml-2">
                           {poll.type === "winner" ? "Match Winner" : "Man of the Match"}

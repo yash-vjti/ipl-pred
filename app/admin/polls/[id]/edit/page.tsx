@@ -70,7 +70,7 @@ export default function EditPollPage({ params }: { params: { id: string } }) {
     }
 
     loadPoll()
-  }, [fetchPoll])
+  }, [fetchPoll, params.id])
 
   const addOption = () => {
     setOptions([...options, { id: `new-${options.length}`, text: "", votes: 0 }])

@@ -45,7 +45,7 @@ export default function PollResultsPage({ params }: { params: { id: string } }) 
     }
 
     loadPoll()
-  }, [fetchPoll])
+  }, [fetchPoll, params.id])
 
   const handleExportResults = () => {
     toast({

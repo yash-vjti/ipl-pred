@@ -29,47 +29,62 @@ export default function Dashboard() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const polls = await fetchPolls()
-        setActivePolls(polls.filter((poll) => poll.status === "active").slice(0, 3))
-        setUpcomingMatches(polls.filter((poll) => poll.status === "upcoming").slice(0, 3))
+        // Fetch active polls from the API
+        const pollsResponse = await fetch("/api/polls?status=ACTIVE")
+        if (!pollsResponse.ok) throw new Error("Failed to fetch polls")
+        const pollsData = await pollsResponse.json()
+        console.log(pollsData);
+        setActivePolls(pollsData.data.slice(0, 3))
 
-        // Mock recent predictions data
-        setRecentPredictions([
-          {
-            id: "1",
-            team1: "Mumbai Indians",
-            team2: "Chennai Super Kings",
-            date: "Mar 19, 2025",
-            prediction: "Mumbai Indians",
-            result: "Mumbai Indians won by 24 runs",
-            isCorrect: true,
-          },
-          {
-            id: "2",
-            team1: "Kolkata Knight Riders",
-            team2: "Punjab Kings",
-            date: "Mar 18, 2025",
-            prediction: "Kolkata Knight Riders",
-            result: "Punjab Kings won by 5 wickets",
-            isCorrect: false,
-          },
-          {
-            id: "3",
-            team1: "Delhi Capitals",
-            team2: "Rajasthan Royals",
-            date: "Mar 17, 2025",
-            prediction: "Delhi Capitals",
-            result: "Delhi Capitals won by 8 runs",
-            isCorrect: true,
-          },
-        ])
+        // Fetch upcoming matches
+        const matchesResponse = await fetch("/api/matches?status=UPCOMING")
+        if (!matchesResponse.ok) throw new Error("Failed to fetch matches")
+        const matchesData = await matchesResponse.json()
+        setUpcomingMatches(matchesData.data.slice(0, 3))
+
+        // Fetch user's prediction history if logged in
+        if (user) {
+          const predictionsResponse = await fetch(`/api/statistics/user?userId=${user.id}`)
+          if (predictionsResponse.ok) {
+            const userStats = await predictionsResponse.json()
+            setStats({
+              totalPredictions: userStats.totalPredictions,
+              correctPredictions: userStats.correctPredictions,
+              points: userStats.points,
+              rank: userStats.rank,
+            })
+
+            // Get recent predictions
+            const votesResponse = await fetch(`/api/votes?userId=${user.id}`)
+            if (votesResponse.ok) {
+              const votesData = await votesResponse.json()
+              const recentPredictions = votesData.slice(0, 3).map((vote) => ({
+                id: vote.id,
+                team1: vote.poll.team1,
+                team2: vote.poll.team2,
+                date: new Date(vote.poll.date).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                }),
+                prediction: vote.option.text,
+                result:
+                  vote.poll.status === "COMPLETED"
+                    ? `${vote.poll.team1} won by ${vote.poll.resultDetails || "N/A"}`
+                    : "Match not completed",
+                isCorrect: vote.option.isCorrect,
+              }))
+              setRecentPredictions(recentPredictions)
+            }
+          }
+        }
       } catch (error) {
         console.error("Error loading dashboard data:", error)
       }
     }
 
     loadData()
-  }, [fetchPolls])
+  }, [fetchPolls, user])
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -149,8 +164,8 @@ export default function Dashboard() {
                 <MatchCard
                   key={poll.id}
                   id={poll.id}
-                  team1={poll.team1}
-                  team2={poll.team2}
+                  team1={poll.match.homeTeam.name}
+                  team2={poll.match.awayTeam.name}
                   date={new Date(poll.date).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",

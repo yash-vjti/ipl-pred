@@ -1,59 +1,28 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { getOverallStatistics } from "@/lib/db"
+import { authMiddleware } from "@/lib/auth"
 
-// Mock statistics data
-const statistics = {
-  users: {
-    total: 856,
-    active: 742,
-    inactive: 114,
-    admins: 5,
-    growth: {
-      daily: 12,
-      weekly: 68,
-      monthly: 245,
-    },
-    retention: 87.5,
-  },
-  polls: {
-    total: 48,
-    active: 5,
-    completed: 43,
-    totalVotes: 12456,
-    averageVotesPerPoll: 259.5,
-    mostPopular: {
-      id: "1",
-      teams: "Mumbai Indians vs Chennai Super Kings",
-      votes: 1245,
-    },
-  },
-  predictions: {
-    total: 8765,
-    accuracy: {
-      overall: 64.2,
-      matchWinner: 68.4,
-      manOfTheMatch: 42.7,
-    },
-    pointsAwarded: 245670,
-    averagePointsPerUser: 286.8,
-  },
-  teams: {
-    mostPredicted: "Mumbai Indians",
-    mostAccurate: "Chennai Super Kings",
-    leastAccurate: "Punjab Kings",
-  },
-}
+export async function GET(request: NextRequest) {
+  try {
+    const authResult = await authMiddleware(request)
+    if (!authResult.success) {
+      return NextResponse.json({ success: false, error: authResult.error }, { status: 401 })
+    }
 
-export async function GET(request: Request) {
-  // Get query parameters
-  const { searchParams } = new URL(request.url)
-  const period = searchParams.get("period") || "all"
+    // Only admins can access overall statistics
+    if (authResult.user.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Unauthorized. Admin access required." }, { status: 403 })
+    }
 
-  // In a real app, you would filter statistics based on the period
-  // For this mock, we'll just return the full statistics
+    const { searchParams } = new URL(request.url)
+    const period = searchParams.get("period") || "all"
 
-  return NextResponse.json({
-    ...statistics,
-    period,
-  })
+    const stats = await getOverallStatistics(period)
+
+    return NextResponse.json(stats)
+  } catch (error) {
+    console.error("Error fetching statistics:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch statistics" }, { status: 500 })
+  }
 }
 

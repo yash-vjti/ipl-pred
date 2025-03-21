@@ -51,9 +51,9 @@ export default function AdminPollsPage() {
   // Filter polls based on active tab, search term, and team filter
   const filteredPolls = polls.filter((poll) => {
     // Filter by status based on active tab
-    if (activeTab === "active" && poll.status !== "active") return false
-    if (activeTab === "upcoming" && poll.status !== "upcoming") return false
-    if (activeTab === "completed" && poll.status !== "completed") return false
+    if (activeTab === "active" && poll.status !== "ACTIVE") return false
+    if (activeTab === "upcoming" && poll.status !== "UPCOMING") return false
+    if (activeTab === "completed" && poll.status !== "COMPLETED") return false
 
     // Filter by search term
     if (

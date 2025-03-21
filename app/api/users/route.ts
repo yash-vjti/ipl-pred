@@ -1,121 +1,186 @@
 import { NextResponse } from "next/server"
+import { z } from "zod"
+import { db } from "@/lib/db"
+import { getServerSession } from "@/lib/auth"
+import { hashPassword } from "@/lib/auth"
 
-// Mock users data
-const users = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john@example.com",
-    username: "johndoe",
-    role: "user",
-    status: "active",
-    predictions: 24,
-    points: 350,
-    avatar: "",
-    createdAt: "2025-01-15T10:30:00",
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    email: "jane@example.com",
-    username: "janesmith",
-    role: "user",
-    status: "active",
-    predictions: 32,
-    points: 480,
-    avatar: "",
-    createdAt: "2025-01-20T14:45:00",
-  },
-  {
-    id: "3",
-    name: "Admin User",
-    email: "admin@example.com",
-    username: "adminuser",
-    role: "admin",
-    status: "active",
-    predictions: 28,
-    points: 420,
-    avatar: "",
-    createdAt: "2025-01-10T09:15:00",
-  },
-]
+// Input validation schema for creating a user
+const createUserSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  role: z.enum(["user", "admin"]).default("user"),
+  status: z.enum(["active", "inactive"]).default("active"),
+})
 
 export async function GET(request: Request) {
-  // Get query parameters
-  const { searchParams } = new URL(request.url)
-  const role = searchParams.get("role")
-  const status = searchParams.get("status")
-  const search = searchParams.get("search")
+  try {
+    // Get the authenticated user from the session
+    const session = await getServerSession()
 
-  // Filter users based on query parameters
-  let filteredUsers = [...users]
+    if (!session || !session.user || session.user.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
-  if (role) {
-    filteredUsers = filteredUsers.filter((user) => user.role === role)
+    // Get query parameters
+    const { searchParams } = new URL(request.url)
+    const role = searchParams.get("role")
+    const status = searchParams.get("status")
+    const search = searchParams.get("search")
+    const page = Number.parseInt(searchParams.get("page") || "1")
+    const limit = Number.parseInt(searchParams.get("limit") || "10")
+    const skip = (page - 1) * limit
+
+    // Build the where clause
+    const where: any = {}
+
+    if (role) {
+      where.role = role
+    }
+
+    if (status) {
+      where.status = status
+    }
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { username: { contains: search, mode: "insensitive" } },
+      ]
+    }
+
+    // Get users with pagination
+    const users = await db.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true,
+        role: true,
+        status: true,
+        predictions: true,
+        points: true,
+        avatar: true,
+        createdAt: true,
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    })
+
+    // Get total count
+    const total = await db.user.count({ where })
+
+    return NextResponse.json({
+      data: users,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    })
+  } catch (error) {
+    console.error("Get users error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-
-  if (status) {
-    filteredUsers = filteredUsers.filter((user) => user.status === status)
-  }
-
-  if (search) {
-    const searchLower = search.toLowerCase()
-    filteredUsers = filteredUsers.filter(
-      (user) =>
-        user.name.toLowerCase().includes(searchLower) ||
-        user.email.toLowerCase().includes(searchLower) ||
-        user.username.toLowerCase().includes(searchLower),
-    )
-  }
-
-  // Remove sensitive information
-  const sanitizedUsers = filteredUsers.map(({ ...user }) => {
-    return user
-  })
-
-  return NextResponse.json(sanitizedUsers)
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { name, email, username, role = "user", status = "active" } = body
+    // Get the authenticated user from the session
+    const session = await getServerSession()
 
-    // Validate required fields
-    if (!name || !email || !username) {
-      return NextResponse.json({ error: "Name, email, and username are required" }, { status: 400 })
+    if (!session || !session.user || session.user.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Check if email or username already exists
-    const emailExists = users.some((user) => user.email === email)
-    const usernameExists = users.some((user) => user.username === username)
+    const body = await request.json()
 
-    if (emailExists) {
+    // Validate input
+    const result = createUserSchema.safeParse(body)
+    if (!result.success) {
+      return NextResponse.json({ error: "Validation failed", details: result.error.format() }, { status: 400 })
+    }
+
+    const { name, email, username, password, role, status } = result.data
+
+    // Check if email already exists
+    const existingEmail = await db.user.findUnique({
+      where: { email },
+    })
+
+    if (existingEmail) {
       return NextResponse.json({ error: "Email already in use" }, { status: 400 })
     }
 
-    if (usernameExists) {
+    // Check if username already exists
+    const existingUsername = await db.user.findUnique({
+      where: { username },
+    })
+
+    if (existingUsername) {
       return NextResponse.json({ error: "Username already taken" }, { status: 400 })
     }
 
-    // Create new user
-    const newUser = {
-      id: `${users.length + 1}`,
-      name,
-      email,
-      username,
-      role,
-      status,
-      predictions: 0,
-      points: 0,
-      avatar: "",
-      createdAt: new Date().toISOString(),
-    }
+    // Hash password
+    const hashedPassword = await hashPassword(password)
 
-    // Add to users (in a real app, this would be a database operation)
-    users.push(newUser)
+    // Create user
+    const user = await db.user.create({
+      data: {
+        name,
+        email,
+        username,
+        password: hashedPassword,
+        role,
+        status,
+        predictions: 0,
+        points: 0,
+        avatar: "",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    })
 
-    return NextResponse.json(newUser)
+    // Create default settings for the user
+    await db.userSettings.create({
+      data: {
+        userId: user.id,
+        notifications: {
+          emailNotifications: true,
+          pollReminders: true,
+          resultNotifications: true,
+          leaderboardUpdates: true,
+          newPollNotifications: true,
+          predictionResults: true,
+          systemAnnouncements: true,
+        },
+        privacy: {
+          showProfilePublicly: true,
+          showPredictionsPublicly: true,
+          showPointsPublicly: true,
+          allowTagging: true,
+        },
+        theme: {
+          darkMode: false,
+          highContrast: false,
+          reducedMotion: false,
+        },
+      },
+    })
+
+    return NextResponse.json(user)
   } catch (error) {
     console.error("Create user error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

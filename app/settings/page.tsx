@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -10,37 +10,94 @@ import { useToast } from "@/components/ui/use-toast"
 import { Loader2, Save } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/contexts/auth-context"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function SettingsPage() {
   const { toast } = useToast()
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [isFetching, setIsFetching] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Notification settings
-  const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: true,
-    pollReminders: true,
-    resultNotifications: false,
-    leaderboardUpdates: true,
-    newPollNotifications: true,
-    predictionResults: true,
-    systemAnnouncements: true,
-  })
+  // Default settings
+  const defaultSettings = {
+    notifications: {
+      emailNotifications: true,
+      pollReminders: true,
+      resultNotifications: false,
+      leaderboardUpdates: true,
+      newPollNotifications: true,
+      predictionResults: true,
+      systemAnnouncements: true,
+    },
+    privacy: {
+      showProfilePublicly: true,
+      showPredictionsPublicly: true,
+      showPointsPublicly: true,
+      allowTagging: true,
+    },
+    theme: {
+      darkMode: false,
+      highContrast: false,
+      reducedMotion: false,
+    },
+  }
 
-  // Privacy settings
-  const [privacySettings, setPrivacySettings] = useState({
-    showProfilePublicly: true,
-    showPredictionsPublicly: true,
-    showPointsPublicly: true,
-    allowTagging: true,
-  })
+  // Settings state
+  const [notificationSettings, setNotificationSettings] = useState(defaultSettings.notifications)
+  const [privacySettings, setPrivacySettings] = useState(defaultSettings.privacy)
+  const [themeSettings, setThemeSettings] = useState(defaultSettings.theme)
 
-  // Theme settings
-  const [themeSettings, setThemeSettings] = useState({
-    darkMode: false,
-    highContrast: false,
-    reducedMotion: false,
-  })
+  // Fetch user settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!user) return
+
+      setIsFetching(true)
+      setError(null)
+
+      try {
+        const response = await fetch("/api/settings")
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch settings")
+        }
+
+        const data = await response.json()
+
+        // Update state with user settings or use defaults
+        if (data.settings) {
+          if (data.settings.notifications) {
+            setNotificationSettings({
+              ...defaultSettings.notifications,
+              ...data.settings.notifications,
+            })
+          }
+
+          if (data.settings.privacy) {
+            setPrivacySettings({
+              ...defaultSettings.privacy,
+              ...data.settings.privacy,
+            })
+          }
+
+          if (data.settings.theme) {
+            setThemeSettings({
+              ...defaultSettings.theme,
+              ...data.settings.theme,
+            })
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching settings:", error)
+        setError("Failed to load your settings. Using defaults instead.")
+      } finally {
+        setIsFetching(false)
+      }
+    }
+
+    fetchSettings()
+  }, [user])
 
   const handleNotificationChange = (key: keyof typeof notificationSettings) => {
     setNotificationSettings({
@@ -65,35 +122,54 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async () => {
     setIsLoading(true)
+    setError(null)
 
     try {
-      // In a real app, this would be an API call
-      // await fetch('/api/user/settings', {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     notifications: notificationSettings,
-      //     privacy: privacySettings,
-      //     theme: themeSettings,
-      //   }),
-      // })
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notifications: notificationSettings,
+          privacy: privacySettings,
+          theme: themeSettings,
+        }),
+      })
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || "Failed to save settings")
+      }
 
       toast({
         title: "Settings saved",
         description: "Your preferences have been updated successfully.",
       })
     } catch (error) {
+      console.error("Error saving settings:", error)
+      setError(error instanceof Error ? error.message : "Failed to save settings. Please try again.")
+
       toast({
         title: "Error",
-        description: "Failed to save settings. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save settings. Please try again.",
         variant: "destructive",
       })
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (isFetching) {
+    return (
+      <div className="container mx-auto py-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+          <p className="text-muted-foreground">Manage your account settings and preferences</p>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -102,6 +178,12 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">Manage your account settings and preferences</p>
       </div>
+
+      {error && (
+        <Alert variant="warning">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="notifications">
         <TabsList>

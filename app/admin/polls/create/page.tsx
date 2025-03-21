@@ -37,11 +37,11 @@ export default function CreatePollPage() {
   // Parse match parameter if available
   const initialTeams = matchParam
     ? matchParam.split("-vs-").map((team) =>
-      team
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" "),
-    )
+        team
+          .split("-")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" "),
+      )
     : ["", ""]
 
   const [team1, setTeam1] = useState(initialTeams[0])
@@ -100,8 +100,79 @@ export default function CreatePollPage() {
     setIsSubmitting(true)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Combine date and time for match and poll end
+      const matchDateTime = new Date(matchDate!)
+      const [hours, minutes] = matchTime!.split(":").map(Number)
+      matchDateTime.setHours(hours, minutes)
+
+      const pollEndDateTime = new Date(pollEndDate!)
+      const [pollHours, pollMinutes] = pollEndTime!.split(":").map(Number)
+      pollEndDateTime.setHours(pollHours, pollMinutes)
+
+      // Create match first
+      const matchResponse = await fetch("/api/admin/matches", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          team1,
+          team2,
+          venue,
+          startTime: matchDateTime.toISOString(),
+          status: "upcoming",
+        }),
+      })
+
+      if (!matchResponse.ok) {
+        const error = await matchResponse.json()
+        throw new Error(error.message || "Failed to create match")
+      }
+
+      const matchData = await matchResponse.json()
+      const matchId = matchData.id
+
+      // Create winner poll
+      const winnerPollResponse = await fetch("/api/admin/polls", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          matchId,
+          type: "winner",
+          question: `Who will win the match between ${team1} and ${team2}?`,
+          options: [{ text: team1 }, { text: team2 }],
+          expiresAt: pollEndDateTime.toISOString(),
+          pointValue: 30,
+        }),
+      })
+
+      if (!winnerPollResponse.ok) {
+        const error = await winnerPollResponse.json()
+        throw new Error(error.message || "Failed to create winner poll")
+      }
+
+      // Create man of the match poll
+      const motmPollResponse = await fetch("/api/admin/polls", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          matchId,
+          type: "motm",
+          question: `Who will be the Man of the Match for ${team1} vs ${team2}?`,
+          options: validPlayers.map((player) => ({ text: player.name })),
+          expiresAt: pollEndDateTime.toISOString(),
+          pointValue: 50,
+        }),
+      })
+
+      if (!motmPollResponse.ok) {
+        const error = await motmPollResponse.json()
+        throw new Error(error.message || "Failed to create MOTM poll")
+      }
 
       toast({
         title: "Poll created successfully",
@@ -110,9 +181,10 @@ export default function CreatePollPage() {
 
       router.push("/admin/polls")
     } catch (error) {
+      console.error("Error creating poll:", error)
       toast({
         title: "Failed to create poll",
-        description: "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -226,8 +298,8 @@ export default function CreatePollPage() {
                           <SelectValue placeholder="Select team" />
                         </SelectTrigger>
                         <SelectContent>
-                          {/* <SelectItem value={team1}>{team1}</SelectItem> */}
-                          {/* <SelectItem value={team2}>{team2}</SelectItem> */}
+                          <SelectItem value={team1}>{team1}</SelectItem>
+                          <SelectItem value={team2}>{team2}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

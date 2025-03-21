@@ -36,15 +36,15 @@ export default function AdminDashboard() {
           const polls = await fetchPolls()
 
           // Filter polls by status
-          setActivePolls(polls.filter((poll) => poll.status === "active"))
-          setCompletedPolls(polls.filter((poll) => poll.status === "completed"))
-          setUpcomingPolls(polls.filter((poll) => poll.status === "upcoming"))
+          setActivePolls(polls.filter((poll) => poll.status === "ACTIVE"))
+          setCompletedPolls(polls.filter((poll) => poll.status === "COMPLETED"))
+          setUpcomingPolls(polls.filter((poll) => poll.status === "UPCOMING"))
 
           // Update stats
           setStats((prev) => ({
             ...prev,
-            activePolls: polls.filter((poll) => poll.status === "active").length,
-            completedPolls: polls.filter((poll) => poll.status === "completed").length,
+            activePolls: polls.filter((poll) => poll.status === "ACTIVE").length,
+            completedPolls: polls.filter((poll) => poll.status === "COMPLETED").length,
           }))
 
           // Mark polls as loaded

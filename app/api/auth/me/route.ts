@@ -1,50 +1,40 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "@/lib/auth"
+import { db } from "@/lib/db"
 
-// Mock user database (same as in login route)
-const users = [
-  {
-    id: "1",
-    name: "User Account",
-    email: "user@example.com",
-    password: "password", // In a real app, this would be hashed
-    role: "user",
-  },
-  {
-    id: "2",
-    name: "Admin Account",
-    email: "admin@example.com",
-    password: "password", // In a real app, this would be hashed
-    role: "admin",
-  },
-]
-
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    // In a real app, you would:
-    // 1. Get the user ID from the session or JWT token
-    // 2. Fetch the user from the database
-    // 3. Return the user data without sensitive information
+    // Get the authenticated user from the session
+    const session = await getServerSession()
 
-    // For demo purposes, we'll just return a mock user
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get("userId")
-
-    if (!userId) {
-      return NextResponse.json({ error: "User ID is required" }, { status: 400 })
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = users.find((u) => u.id === userId)
+    // Get the user from the database
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true,
+        role: true,
+        status: true,
+        predictions: true,
+        points: true,
+        avatar: true,
+        createdAt: true,
+      },
+    })
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Remove sensitive information
-    const { password, ...userWithoutPassword } = user
-
-    return NextResponse.json(userWithoutPassword)
+    return NextResponse.json(user)
   } catch (error) {
-    console.error("Get user error:", error)
+    console.error("Get current user error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

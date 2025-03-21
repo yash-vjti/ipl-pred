@@ -1,88 +1,68 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { getUserVotes, createVote } from "@/lib/db"
+import { authMiddleware } from "@/lib/auth"
 
-// Mock votes data
-const votes = [
-  {
-    id: "1",
-    userId: "1",
-    pollId: "1",
-    optionId: "2",
-    createdAt: "2025-03-20T14:30:00",
-  },
-  {
-    id: "2",
-    userId: "1",
-    pollId: "2",
-    optionId: "3",
-    createdAt: "2025-03-20T14:35:00",
-  },
-  {
-    id: "3",
-    userId: "2",
-    pollId: "1",
-    optionId: "1",
-    createdAt: "2025-03-21T10:15:00",
-  },
-]
+export async function GET(request: NextRequest) {
+  try {
+    const authResult = await authMiddleware(request)
+    if (!authResult.success) {
+      return NextResponse.json({ success: false, error: authResult.error }, { status: 401 })
+    }
 
-export async function GET(request: Request) {
-  // Get query parameters
-  const { searchParams } = new URL(request.url)
-  const userId = searchParams.get("userId")
-  const pollId = searchParams.get("pollId")
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get("userId") || authResult.user.id
+    const pollId = searchParams.get("pollId")
 
-  // Filter votes based on query parameters
-  let filteredVotes = [...votes]
+    // Check if requesting other user's votes
+    if (userId !== authResult.user.id && authResult.user.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Unauthorized to view other user's votes" }, { status: 403 })
+    }
 
-  if (userId) {
-    filteredVotes = filteredVotes.filter((vote) => vote.userId === userId)
+    const votes = await getUserVotes(userId, pollId)
+
+    return NextResponse.json(votes)
+  } catch (error) {
+    console.error("Error fetching votes:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch votes" }, { status: 500 })
   }
-
-  if (pollId) {
-    filteredVotes = filteredVotes.filter((vote) => vote.pollId === pollId)
-  }
-
-  return NextResponse.json(filteredVotes)
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { userId, pollId, optionId } = body
-
-    // Validate required fields
-    if (!userId || !pollId || !optionId) {
-      return NextResponse.json({ error: "userId, pollId, and optionId are required" }, { status: 400 })
+    const authResult = await authMiddleware(request)
+    if (!authResult.success) {
+      return NextResponse.json({ success: false, error: authResult.error }, { status: 401 })
     }
 
-    // Check if user has already voted on this poll
-    const existingVote = votes.find((v) => v.userId === userId && v.pollId === pollId)
+    const data = await request.json()
+    const { pollId, optionId } = data
 
-    if (existingVote) {
-      return NextResponse.json({ error: "User has already voted on this poll" }, { status: 400 })
+    if (!pollId || !optionId) {
+      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 })
     }
 
-    // In a real app, you would:
-    // 1. Validate that the poll and option exist
-    // 2. Check if the poll is still active
-    // 3. Update the vote count for the option
-    // 4. Store the vote in your database
-
-    const newVote = {
-      id: `${votes.length + 1}`,
-      userId,
+    const vote = await createVote({
+      userId: authResult.user.id,
       pollId,
       optionId,
-      createdAt: new Date().toISOString(),
+    })
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: vote,
+      },
+      { status: 201 },
+    )
+  } catch (error) {
+    console.error("Error creating vote:", error)
+
+    // Handle duplicate vote error
+    if (error.code === "P2002") {
+      return NextResponse.json({ success: false, error: "You have already voted on this poll" }, { status: 409 })
     }
 
-    // Add to votes (in a real app, this would be a database operation)
-    votes.push(newVote)
-
-    return NextResponse.json(newVote)
-  } catch (error) {
-    console.error("Create vote error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ success: false, error: "Failed to create vote" }, { status: 500 })
   }
 }
 

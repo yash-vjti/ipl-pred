@@ -40,106 +40,14 @@ export default function SchedulePage() {
       setError(null)
 
       try {
-        // In a real app, this would be an API call
-        // const response = await fetch('/api/matches')
+        const response = await fetch("/api/matches")
 
-        // Simulate API response with mock data
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        if (!response.ok) {
+          throw new Error("Failed to fetch matches")
+        }
 
-        const mockMatches: Match[] = [
-          {
-            id: "m1",
-            team1: "Mumbai Indians",
-            team1ShortName: "MI",
-            team2: "Chennai Super Kings",
-            team2ShortName: "CSK",
-            date: "2025-04-10T18:30:00",
-            venue: "Wankhede Stadium, Mumbai",
-            status: "upcoming",
-            hasPolls: true,
-          },
-          {
-            id: "m2",
-            team1: "Royal Challengers Bangalore",
-            team1ShortName: "RCB",
-            team2: "Kolkata Knight Riders",
-            team2ShortName: "KKR",
-            date: "2025-04-12T14:00:00",
-            venue: "M. Chinnaswamy Stadium, Bangalore",
-            status: "upcoming",
-            hasPolls: true,
-          },
-          {
-            id: "m3",
-            team1: "Delhi Capitals",
-            team1ShortName: "DC",
-            team2: "Rajasthan Royals",
-            team2ShortName: "RR",
-            date: "2025-04-15T18:30:00",
-            venue: "Arun Jaitley Stadium, Delhi",
-            status: "upcoming",
-            hasPolls: false,
-          },
-          {
-            id: "m4",
-            team1: "Sunrisers Hyderabad",
-            team1ShortName: "SRH",
-            team2: "Punjab Kings",
-            team2ShortName: "PBKS",
-            date: "2025-04-05T18:30:00",
-            venue: "Rajiv Gandhi Stadium, Hyderabad",
-            status: "completed",
-            result: "Sunrisers Hyderabad won by 7 wickets",
-            hasPolls: true,
-          },
-          {
-            id: "m5",
-            team1: "Gujarat Titans",
-            team1ShortName: "GT",
-            team2: "Lucknow Super Giants",
-            team2ShortName: "LSG",
-            date: "2025-04-03T18:30:00",
-            venue: "Narendra Modi Stadium, Ahmedabad",
-            status: "completed",
-            result: "Gujarat Titans won by 5 wickets",
-            hasPolls: true,
-          },
-          {
-            id: "m6",
-            team1: "Mumbai Indians",
-            team1ShortName: "MI",
-            team2: "Royal Challengers Bangalore",
-            team2ShortName: "RCB",
-            date: "2025-04-18T18:30:00",
-            venue: "Wankhede Stadium, Mumbai",
-            status: "upcoming",
-            hasPolls: false,
-          },
-          {
-            id: "m7",
-            team1: "Chennai Super Kings",
-            team1ShortName: "CSK",
-            team2: "Kolkata Knight Riders",
-            team2ShortName: "KKR",
-            date: "2025-04-20T18:30:00",
-            venue: "M. A. Chidambaram Stadium, Chennai",
-            status: "upcoming",
-            hasPolls: false,
-          },
-          {
-            id: "m8",
-            team1: "Rajasthan Royals",
-            team1ShortName: "RR",
-            team2: "Punjab Kings",
-            team2ShortName: "PBKS",
-            date: "2025-04-22T18:30:00",
-            venue: "Sawai Mansingh Stadium, Jaipur",
-            status: "upcoming",
-            hasPolls: false,
-          },
-        ]
-
-        setMatches(mockMatches)
+        const data = await response.json()
+        setMatches(data.matches)
       } catch (err) {
         console.error("Error fetching matches:", err)
         setError("Failed to load match schedule. Please try again.")
@@ -342,3 +250,95 @@ export default function SchedulePage() {
   )
 }
 
+const mockMatches: Match[] = [
+  {
+    id: "m1",
+    team1: "Mumbai Indians",
+    team1ShortName: "MI",
+    team2: "Chennai Super Kings",
+    team2ShortName: "CSK",
+    date: "2025-04-10T18:30:00",
+    venue: "Wankhede Stadium, Mumbai",
+    status: "upcoming",
+    hasPolls: true,
+  },
+  {
+    id: "m2",
+    team1: "Royal Challengers Bangalore",
+    team1ShortName: "RCB",
+    team2: "Kolkata Knight Riders",
+    team2ShortName: "KKR",
+    date: "2025-04-12T14:00:00",
+    venue: "M. Chinnaswamy Stadium, Bangalore",
+    status: "upcoming",
+    hasPolls: true,
+  },
+  {
+    id: "m3",
+    team1: "Delhi Capitals",
+    team1ShortName: "DC",
+    team2: "Rajasthan Royals",
+    team2ShortName: "RR",
+    date: "2025-04-15T18:30:00",
+    venue: "Arun Jaitley Stadium, Delhi",
+    status: "upcoming",
+    hasPolls: false,
+  },
+  {
+    id: "m4",
+    team1: "Sunrisers Hyderabad",
+    team1ShortName: "SRH",
+    team2: "Punjab Kings",
+    team2ShortName: "PBKS",
+    date: "2025-04-05T18:30:00",
+    venue: "Rajiv Gandhi Stadium, Hyderabad",
+    status: "completed",
+    result: "Sunrisers Hyderabad won by 7 wickets",
+    hasPolls: true,
+  },
+  {
+    id: "m5",
+    team1: "Gujarat Titans",
+    team1ShortName: "GT",
+    team2: "Lucknow Super Giants",
+    team2ShortName: "LSG",
+    date: "2025-04-03T18:30:00",
+    venue: "Narendra Modi Stadium, Ahmedabad",
+    status: "completed",
+    result: "Gujarat Titans won by 5 wickets",
+    hasPolls: true,
+  },
+  {
+    id: "m6",
+    team1: "Mumbai Indians",
+    team1ShortName: "MI",
+    team2: "Royal Challengers Bangalore",
+    team2ShortName: "RCB",
+    date: "2025-04-18T18:30:00",
+    venue: "Wankhede Stadium, Mumbai",
+    status: "upcoming",
+    hasPolls: false,
+  },
+  {
+    id: "m7",
+    team1: "Chennai Super Kings",
+    team1ShortName: "CSK",
+    team2: "Kolkata Knight Riders",
+    team2ShortName: "KKR",
+    date: "2025-04-20T18:30:00",
+    venue: "M. A. Chidambaram Stadium, Chennai",
+    status: "upcoming",
+    hasPolls: false,
+  },
+  {
+    id: "m8",
+    team1: "Rajasthan Royals",
+    team1ShortName: "RR",
+    team2: "Punjab Kings",
+    team2ShortName: "PBKS",
+    date: "2025-04-22T18:30:00",
+    venue: "Sawai Mansingh Stadium, Jaipur",
+    status: "upcoming",
+    hasPolls: false,
+  },
+]

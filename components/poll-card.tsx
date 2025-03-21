@@ -47,11 +47,21 @@ export function PollCard({ poll }: { poll: Poll }) {
     setIsSubmitting(true)
 
     try {
-      // In a real app, you would call your API here
-      // await submitVote(poll.id, selectedOption);
+      const response = await fetch("/api/votes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pollId: poll.id,
+          optionId: selectedOption,
+        }),
+      })
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || "Failed to submit vote")
+      }
 
       setHasVoted(true)
       toast({
@@ -59,9 +69,11 @@ export function PollCard({ poll }: { poll: Poll }) {
         description: "Your vote has been recorded successfully.",
       })
     } catch (error) {
+      console.error("Error submitting vote:", error)
       toast({
         title: "Error",
-        description: "There was an error submitting your vote. Please try again.",
+        description:
+          error instanceof Error ? error.message : "There was an error submitting your vote. Please try again.",
         variant: "destructive",
       })
     } finally {

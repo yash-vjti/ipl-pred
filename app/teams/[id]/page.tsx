@@ -217,7 +217,7 @@ export default function TeamDetailsPage({ params }: { params: { id: string } }) 
     }
 
     fetchTeamDetails()
-  }, [params.id])
+  }, [])
 
   return (
     <div className="container mx-auto space-y-6">

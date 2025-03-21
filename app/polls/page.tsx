@@ -25,18 +25,22 @@ export default function PollsPage() {
   useEffect(() => {
     const loadPolls = async () => {
       try {
-        const polls = await fetchPolls()
+        // Fetch polls from the API
+        const response = await fetch("/api/polls")
+        if (!response.ok) throw new Error("Failed to fetch polls")
+        const data = await response.json()
+        const polls = data.data
 
         // Filter polls by status
-        setActivePolls(polls.filter((poll) => poll.status === "active"))
-        setUpcomingPolls(polls.filter((poll) => poll.status === "upcoming"))
-        setCompletedPolls(polls.filter((poll) => poll.status === "completed"))
+        setActivePolls(polls.filter((poll) => poll.status === "ACTIVE"))
+        setUpcomingPolls(polls.filter((poll) => poll.status === "UPCOMING"))
+        setCompletedPolls(polls.filter((poll) => poll.status === "COMPLETED"))
 
         // If user is logged in, fetch their votes
         if (user) {
-          const response = await fetch(`/api/votes?userId=${user.id}`)
-          if (response.ok) {
-            const votes = await response.json()
+          const votesResponse = await fetch(`/api/votes?userId=${user.id}`)
+          if (votesResponse.ok) {
+            const votes = await votesResponse.json()
 
             // Create a map of pollId -> optionId
             const voteMap: Record<string, string> = {}

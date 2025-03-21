@@ -28,38 +28,15 @@ export function NotificationsPopover() {
 
       setIsLoading(true)
       try {
-        // In a real app, this would be an API call
-        // const response = await fetch(`/api/notifications?userId=${user.id}`)
+        const response = await fetch("/api/notifications")
 
-        // Simulate API response with mock data
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        if (!response.ok) {
+          throw new Error("Failed to fetch notifications")
+        }
 
-        const mockNotifications: Notification[] = [
-          {
-            id: "1",
-            type: "poll_created",
-            message: "New poll created: Mumbai Indians vs Chennai Super Kings",
-            isRead: false,
-            createdAt: "2025-03-20T10:30:00",
-          },
-          {
-            id: "2",
-            type: "poll_ending",
-            message: "Poll ending soon: Royal Challengers Bangalore vs Delhi Capitals",
-            isRead: true,
-            createdAt: "2025-03-19T15:45:00",
-          },
-          {
-            id: "3",
-            type: "prediction_result",
-            message: "Your prediction was correct! You earned 30 points.",
-            isRead: false,
-            createdAt: "2025-03-18T22:10:00",
-          },
-        ]
-
-        setNotifications(mockNotifications)
-        setUnreadCount(mockNotifications.filter((n) => !n.isRead).length)
+        const data = await response.json()
+        setNotifications(data.notifications)
+        setUnreadCount(data.notifications.filter((n: Notification) => !n.isRead).length)
       } catch (error) {
         console.error("Error fetching notifications:", error)
       } finally {
@@ -71,25 +48,50 @@ export function NotificationsPopover() {
   }, [user])
 
   const markAsRead = async (id: string) => {
-    // In a real app, this would be an API call
-    // await fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+    try {
+      const response = await fetch(`/api/notifications/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isRead: true }),
+      })
 
-    // Update local state
-    setNotifications((prev) =>
-      prev.map((notification) => (notification.id === id ? { ...notification, isRead: true } : notification)),
-    )
+      if (!response.ok) {
+        throw new Error("Failed to mark notification as read")
+      }
 
-    setUnreadCount((prev) => Math.max(0, prev - 1))
+      // Update local state
+      setNotifications((prev) =>
+        prev.map((notification) => (notification.id === id ? { ...notification, isRead: true } : notification)),
+      )
+
+      setUnreadCount((prev) => Math.max(0, prev - 1))
+    } catch (error) {
+      console.error("Error marking notification as read:", error)
+    }
   }
 
   const markAllAsRead = async () => {
-    // In a real app, this would be an API call
-    // await fetch(`/api/notifications/read-all?userId=${user.id}`, { method: 'POST' })
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ markAllAsRead: true }),
+      })
 
-    // Update local state
-    setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })))
+      if (!response.ok) {
+        throw new Error("Failed to mark all notifications as read")
+      }
 
-    setUnreadCount(0)
+      // Update local state
+      setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })))
+      setUnreadCount(0)
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -172,4 +174,26 @@ export function NotificationsPopover() {
     </Popover>
   )
 }
-
+const mockNotifications: Notification[] = [
+  {
+    id: "1",
+    type: "poll_created",
+    message: "New poll created: Mumbai Indians vs Chennai Super Kings",
+    isRead: false,
+    createdAt: "2025-03-20T10:30:00",
+  },
+  {
+    id: "2",
+    type: "poll_ending",
+    message: "Poll ending soon: Royal Challengers Bangalore vs Delhi Capitals",
+    isRead: true,
+    createdAt: "2025-03-19T15:45:00",
+  },
+  {
+    id: "3",
+    type: "prediction_result",
+    message: "Your prediction was correct! You earned 30 points.",
+    isRead: false,
+    createdAt: "2025-03-18T22:10:00",
+  },
+]

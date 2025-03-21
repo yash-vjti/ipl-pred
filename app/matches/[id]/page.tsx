@@ -66,58 +66,21 @@ export default function MatchDetailsPage({ params }: { params: { id: string } })
       setError(null)
 
       try {
-        // In a real app, this would be an API call
-        // const response = await fetch(`/api/matches/${params.id}`)
+        // Fetch match details from the API
+        const response = await fetch(`/api/matches/${params.id}`)
+        if (!response.ok) throw new Error("Failed to fetch match details")
 
-        // Simulate API response with mock data
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        const matchData = await response.json()
+        setMatch(matchData)
 
-        const mockMatch: MatchDetails = {
-          id: params.id,
-          team1: "Mumbai Indians",
-          team2: "Chennai Super Kings",
-          date: "2025-04-10T18:30:00",
-          venue: "Wankhede Stadium, Mumbai",
-          status: "upcoming",
-          polls: [
-            {
-              id: "1",
-              type: "winner",
-              question: "Who will win the match?",
-              status: "active",
-              totalVotes: 557,
-            },
-            {
-              id: "2",
-              type: "motm",
-              question: "Who will be the Man of the Match?",
-              status: "active",
-              totalVotes: 432,
-            },
-          ],
-          comments: [
-            {
-              id: "1",
-              userId: "1",
-              userName: "John Doe",
-              text: "This is going to be an exciting match! Mumbai Indians have a strong batting lineup.",
-              timestamp: "2025-04-08T14:30:00",
-              likes: 5,
-              hasLiked: false,
-            },
-            {
-              id: "2",
-              userId: "2",
-              userName: "Jane Smith",
-              text: "Chennai Super Kings have been performing well in their recent matches. They might have an edge.",
-              timestamp: "2025-04-08T15:45:00",
-              likes: 3,
-              hasLiked: true,
-            },
-          ],
+        // Fetch comments if available
+        if (matchData.id) {
+          const commentsResponse = await fetch(`/api/matches/${matchData.id}/comments`)
+          if (commentsResponse.ok) {
+            const commentsData = await commentsResponse.json()
+            setMatch((prev) => (prev ? { ...prev, comments: commentsData } : null))
+          }
         }
-
-        setMatch(mockMatch)
       } catch (err) {
         console.error("Error fetching match details:", err)
         setError("Failed to load match details. Please try again.")
@@ -130,45 +93,33 @@ export default function MatchDetailsPage({ params }: { params: { id: string } })
   }, [params.id])
 
   const handleSubmitComment = async () => {
-    if (!commentText.trim()) return
+    if (!commentText.trim() || !match || !user) return
 
     setIsSubmittingComment(true)
 
     try {
-      // In a real app, this would be an API call
-      // await fetch(`/api/matches/${params.id}/comments`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ text: commentText }),
-      // })
+      const response = await fetch(`/api/matches/${match.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: commentText }),
+      })
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      if (!response.ok) throw new Error("Failed to post comment")
+
+      const newComment = await response.json()
 
       // Update local state
-      if (match && user) {
-        const newComment = {
-          id: `new-${Date.now()}`,
-          userId: user.id,
-          userName: user.name,
-          text: commentText,
-          timestamp: new Date().toISOString(),
-          likes: 0,
-          hasLiked: false,
-        }
+      setMatch({
+        ...match,
+        comments: [newComment, ...(match.comments || [])],
+      })
 
-        setMatch({
-          ...match,
-          comments: [newComment, ...match.comments],
-        })
+      setCommentText("")
 
-        setCommentText("")
-
-        toast({
-          title: "Comment posted",
-          description: "Your comment has been posted successfully.",
-        })
-      }
+      toast({
+        title: "Comment posted",
+        description: "Your comment has been posted successfully.",
+      })
     } catch (error) {
       console.error("Error posting comment:", error)
       toast({

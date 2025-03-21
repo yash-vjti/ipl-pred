@@ -1,101 +1,85 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { getPollById, updatePoll, deletePoll } from "@/lib/db"
+import { authMiddleware } from "@/lib/auth"
 
-// Mock polls data (same as in the polls route)
-const polls = [
-  {
-    id: "1",
-    matchId: "1",
-    team1: "Mumbai Indians",
-    team2: "Chennai Super Kings",
-    date: "2025-03-22T19:30:00",
-    venue: "Wankhede Stadium",
-    pollEndTime: "2025-03-22T18:30:00",
-    status: "active",
-    pollType: "winner",
-    question: "Who will win the match?",
-    options: [
-      { id: "1", text: "Mumbai Indians", votes: 245 },
-      { id: "2", text: "Chennai Super Kings", votes: 312 },
-    ],
-    totalVotes: 557,
-  },
-  {
-    id: "2",
-    matchId: "1",
-    team1: "Mumbai Indians",
-    team2: "Chennai Super Kings",
-    date: "2025-03-22T19:30:00",
-    venue: "Wankhede Stadium",
-    pollEndTime: "2025-03-22T18:30:00",
-    status: "active",
-    pollType: "motm",
-    question: "Who will be the Man of the Match?",
-    options: [
-      { id: "1", text: "Rohit Sharma", votes: 156 },
-      { id: "2", text: "Jasprit Bumrah", votes: 98 },
-      { id: "3", text: "MS Dhoni", votes: 203 },
-      { id: "4", text: "Ravindra Jadeja", votes: 87 },
-    ],
-    totalVotes: 544,
-  },
-]
-
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const id = params.id
-
-  // Find poll by ID
-  const poll = polls.find((p) => p.id === id)
-
-  if (!poll) {
-    return NextResponse.json({ error: "Poll not found" }, { status: 404 })
-  }
-
-  return NextResponse.json(poll)
-}
-
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const id = params.id
-    const body = await request.json()
+    const poll = await getPollById(params.id)
 
-    // Find poll index
-    const pollIndex = polls.findIndex((p) => p.id === id)
-
-    if (pollIndex === -1) {
-      return NextResponse.json({ error: "Poll not found" }, { status: 404 })
+    if (!poll) {
+      return NextResponse.json({ success: false, error: "Poll not found" }, { status: 404 })
     }
 
-    // Update poll (in a real app, this would be a database operation)
-    const updatedPoll = {
-      ...polls[pollIndex],
-      ...body,
-    }
-
-    polls[pollIndex] = updatedPoll
-
-    return NextResponse.json(updatedPoll)
+    return NextResponse.json({
+      success: true,
+      data: poll,
+    })
   } catch (error) {
-    console.error("Update poll error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Error fetching poll:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch poll" }, { status: 500 })
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const id = params.id
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const authResult = await authMiddleware(request)
+    if (!authResult.success) {
+      return NextResponse.json({ success: false, error: authResult.error }, { status: 401 })
+    }
 
-  // Find poll index
-  const pollIndex = polls.findIndex((p) => p.id === id)
+    if (authResult.user?.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Unauthorized. Admin access required." }, { status: 403 })
+    }
 
-  if (pollIndex === -1) {
-    return NextResponse.json({ error: "Poll not found" }, { status: 404 })
+    const data = await request.json()
+    const { question, options, status, startTime, endTime } = data
+
+    const updatedPoll = await updatePoll(params.id, {
+      question,
+      options,
+      status,
+      startTime: startTime ? new Date(startTime) : undefined,
+      endTime: endTime ? new Date(endTime) : undefined,
+    })
+
+    if (!updatedPoll) {
+      return NextResponse.json({ success: false, error: "Poll not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: updatedPoll,
+    })
+  } catch (error) {
+    console.error("Error updating poll:", error)
+    return NextResponse.json({ success: false, error: "Failed to update poll" }, { status: 500 })
   }
+}
 
-  // Delete poll (in a real app, this would be a database operation)
-  const deletedPoll = polls.splice(pollIndex, 1)[0]
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const authResult = await authMiddleware(request)
+    if (!authResult.success) {
+      return NextResponse.json({ success: false, error: authResult.error }, { status: 401 })
+    }
 
-  return NextResponse.json({
-    message: "Poll deleted successfully",
-    poll: deletedPoll,
-  })
+    if (authResult.user?.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Unauthorized. Admin access required." }, { status: 403 })
+    }
+
+    const result = await deletePoll(params.id)
+
+    if (!result) {
+      return NextResponse.json({ success: false, error: "Poll not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Poll deleted successfully",
+    })
+  } catch (error) {
+    console.error("Error deleting poll:", error)
+    return NextResponse.json({ success: false, error: "Failed to delete poll" }, { status: 500 })
+  }
 }
 

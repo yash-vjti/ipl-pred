@@ -41,66 +41,14 @@ export default function HistoryPage() {
       setError(null)
 
       try {
-        // In a real app, this would be an API call
-        // const response = await fetch(`/api/predictions?userId=${user.id}`)
+        const response = await fetch(`/api/users/${user.id}/predictions`)
 
-        // Simulate API response with mock data
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        if (!response.ok) {
+          throw new Error("Failed to fetch predictions")
+        }
 
-        const mockPredictions: Prediction[] = [
-          {
-            id: "1",
-            teams: "Mumbai Indians vs Chennai Super Kings",
-            date: "Mar 19, 2025",
-            prediction: "Mumbai Indians",
-            actual: "Mumbai Indians",
-            isCorrect: true,
-            type: "Match Winner",
-            points: 30,
-          },
-          {
-            id: "2",
-            teams: "Mumbai Indians vs Chennai Super Kings",
-            date: "Mar 19, 2025",
-            prediction: "Rohit Sharma",
-            actual: "Jasprit Bumrah",
-            isCorrect: false,
-            type: "Man of the Match",
-            points: 0,
-          },
-          {
-            id: "3",
-            teams: "Kolkata Knight Riders vs Punjab Kings",
-            date: "Mar 18, 2025",
-            prediction: "Kolkata Knight Riders",
-            actual: "Punjab Kings",
-            isCorrect: false,
-            type: "Match Winner",
-            points: 0,
-          },
-          {
-            id: "4",
-            teams: "Delhi Capitals vs Rajasthan Royals",
-            date: "Mar 17, 2025",
-            prediction: "Delhi Capitals",
-            actual: "Delhi Capitals",
-            isCorrect: true,
-            type: "Match Winner",
-            points: 30,
-          },
-          {
-            id: "5",
-            teams: "Delhi Capitals vs Rajasthan Royals",
-            date: "Mar 17, 2025",
-            prediction: "Rishabh Pant",
-            actual: "Rishabh Pant",
-            isCorrect: true,
-            type: "Man of the Match",
-            points: 50,
-          },
-        ]
-
-        setPredictions(mockPredictions)
+        const data = await response.json()
+        setPredictions(data.predictions)
       } catch (err) {
         console.error("Error fetching predictions:", err)
         setError("Failed to load your prediction history. Please try again.")
@@ -432,3 +380,56 @@ function PredictionItem({
   )
 }
 
+
+const mockPredictions: Prediction[] = [
+  {
+    id: "1",
+    teams: "Mumbai Indians vs Chennai Super Kings",
+    date: "Mar 19, 2025",
+    prediction: "Mumbai Indians",
+    actual: "Mumbai Indians",
+    isCorrect: true,
+    type: "Match Winner",
+    points: 30,
+  },
+  {
+    id: "2",
+    teams: "Mumbai Indians vs Chennai Super Kings",
+    date: "Mar 19, 2025",
+    prediction: "Rohit Sharma",
+    actual: "Jasprit Bumrah",
+    isCorrect: false,
+    type: "Man of the Match",
+    points: 0,
+  },
+  {
+    id: "3",
+    teams: "Kolkata Knight Riders vs Punjab Kings",
+    date: "Mar 18, 2025",
+    prediction: "Kolkata Knight Riders",
+    actual: "Punjab Kings",
+    isCorrect: false,
+    type: "Match Winner",
+    points: 0,
+  },
+  {
+    id: "4",
+    teams: "Delhi Capitals vs Rajasthan Royals",
+    date: "Mar 17, 2025",
+    prediction: "Delhi Capitals",
+    actual: "Delhi Capitals",
+    isCorrect: true,
+    type: "Match Winner",
+    points: 30,
+  },
+  {
+    id: "5",
+    teams: "Delhi Capitals vs Rajasthan Royals",
+    date: "Mar 17, 2025",
+    prediction: "Rishabh Pant",
+    actual: "Rishabh Pant",
+    isCorrect: true,
+    type: "Man of the Match",
+    points: 50,
+  },
+]

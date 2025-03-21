@@ -5,18 +5,21 @@ import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { User } from "@/lib/types"
 
-interface AuthContextType {
+// Add the updateUser function to the AuthContextType interface
+export interface AuthContextType {
   user: User | null
   isLoading: boolean
   error: string | null
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   clearError: () => void
+  updateUser: (user: User) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Add the updateUser function to the AuthProvider component
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -109,11 +112,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null)
   }
 
-  return (
-    <AuthContext.Provider value={{ user, isLoading, error, login, register, logout, clearError }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  // Add the updateUser function
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser)
+  }
+
+  // Include updateUser in the context value
+  const value = {
+    user,
+    login,
+    register,
+    logout,
+    isLoading,
+    error,
+    updateUser,
+    clearError,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
