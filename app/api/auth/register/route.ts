@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         username,
         password: hashedPassword,
         role: "USER",
-        // status: "ACTIVE",
+        status: "ACTIVE",
         // predictions: 0,
         points: 0,
         image: "",
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
         email: true,
         username: true,
         role: true,
-        // status: true,
+        status: true,
         createdAt: true,
       },
     })

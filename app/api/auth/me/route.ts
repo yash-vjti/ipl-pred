@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         email: true,
         username: true,
         role: true,
-        // status: true,
+        status: true,
         // predictions: true,
         points: true,
         image: true,

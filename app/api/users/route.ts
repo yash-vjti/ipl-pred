@@ -54,7 +54,6 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    // Get users with pagination
     const users = await db.user.findMany({
       where,
       select: {
@@ -63,16 +62,27 @@ export async function GET(request: NextRequest) {
         email: true,
         username: true,
         role: true,
-        // status: true,
+        status: true,
         // predictions: true,
         points: true,
         image: true,
         createdAt: true,
+        votes: {
+          select: {
+            id: true,
+            pollId: true,
+            userId: true,
+            optionId: true,
+            createdAt: true,
+          },
+
+        },
       },
       skip,
       take: limit,
       orderBy: { createdAt: "desc" },
     })
+    /******  a8c99b30-cc8c-4cce-a204-ff38aa1f0abe  *******/
 
     // Get total count
     const total = await db.user.count({ where })
@@ -135,6 +145,8 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await hashPassword(password)
 
+
+
     // Create user
     const user1 = await db.user.create({
       data: {
@@ -143,7 +155,7 @@ export async function POST(request: NextRequest) {
         username,
         password: hashedPassword,
         role,
-        // status,
+        status,
         // predictions: 0,
         points: 0,
         image: "",
@@ -154,7 +166,7 @@ export async function POST(request: NextRequest) {
         email: true,
         username: true,
         role: true,
-        // status: true,
+        status: true,
         createdAt: true,
       },
     })

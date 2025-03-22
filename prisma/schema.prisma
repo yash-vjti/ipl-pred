@@ -24,6 +24,7 @@ model User {
   notifications Notification[]
   comments      Comment[]
   settings      Settings?
+  status        UserStatus    @default(ACTIVE)
 }
 
 model Settings {
@@ -146,6 +147,11 @@ model Comment {
 enum Role {
   USER
   ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
 }
 
 enum MatchStatus {
