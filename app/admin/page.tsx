@@ -295,7 +295,7 @@ export default function AdminPage() {
                           <div className="text-sm text-gray-500">{user.email}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge variant={user.role === "admin" ? "default" : "secondary"}>{user.role}</Badge>
+                          <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>{user.role}</Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">{user.predictions}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">{user.points}</td>

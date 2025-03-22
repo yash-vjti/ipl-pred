@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getUserPredictions } from "@/lib/db"
-import { getServerSession } from "next-auth"
 import { authenticate, authError } from "@/lib/auth"
 import { addISOWeekYears } from "date-fns"
 
@@ -16,11 +15,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
 
-    const userId = params.id
-    if (user?.id !== userId) {
+    const { id } = await params
+    if (user?.id !== id) {
       return NextResponse.json({ success: false, error: "Unauthorized. Cannot view the predictions of other user." }, { status: 403 })
     }
-    const predictions = await getUserPredictions(userId)
+    const predictions = await getUserPredictions(id)
 
     // Format predictions for the frontend
     const formattedPredictions = predictions.map((prediction) => {
