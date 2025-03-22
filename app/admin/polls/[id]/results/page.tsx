@@ -39,7 +39,7 @@ export default function PollResultsPage({ params }) {
     const loadPoll = async () => {
       try {
         const pollData = await fetchPoll(params.id)
-        setPoll(pollData)
+        setPoll(pollData.data)
       } catch (error) {
         console.error("Error loading poll:", error)
         setLoadingError("Failed to load poll results. Please try again.")

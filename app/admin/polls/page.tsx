@@ -39,7 +39,7 @@ export default function AdminPollsPage() {
     const loadPolls = async () => {
       try {
         const fetchedPolls = await fetchPolls()
-        setPolls(fetchedPolls)
+        setPolls(fetchedPolls.data)
       } catch (error) {
         console.error("Error loading polls:", error)
       }
