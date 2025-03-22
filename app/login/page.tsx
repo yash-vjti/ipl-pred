@@ -24,7 +24,8 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      if (user.role === "admin") {
+      if (user.role === "ADMIN") {
+        console.log("admin")
         router.push("/admin/dashboard")
       } else {
         router.push("/dashboard")

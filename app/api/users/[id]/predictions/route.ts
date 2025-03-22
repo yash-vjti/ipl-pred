@@ -21,13 +21,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ success: false, error: "Unauthorized. Cannot view the predictions of other user." }, { status: 403 })
     }
     const predictions = await getUserPredictions(userId)
-    console.log("predictions", predictions)
-    console.log('option', predictions[0].poll.options)
 
     // Format predictions for the frontend
     const formattedPredictions = predictions.map((prediction) => {
       const match = prediction.poll.match
-      console.log("match", prediction.poll.options.filter((option) => option.isCorrect == true))
       return {
         id: prediction.id,
         teams: `${match.homeTeam.name} vs ${match.awayTeam.name}`,

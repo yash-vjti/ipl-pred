@@ -267,7 +267,7 @@ interface User {
   name: string
   email: string
   username: string
-  role: "admin" | "user"
+  role: "ADMIN" | "USER"
   status: "active" | "inactive"
   predictions: number
   points: number
