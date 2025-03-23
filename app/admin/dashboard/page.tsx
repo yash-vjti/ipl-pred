@@ -14,7 +14,7 @@ import { TeamLogo } from "@/components/team-logo"
 import { Badge } from "@/components/ui/badge"
 
 export default function AdminDashboard() {
-  const { fetchPolls, isLoading } = usePolls()
+  const { fetchAdminPolls, isLoading } = usePolls()
   const [activePolls, setActivePolls] = useState<Poll[]>([])
   const [completedPolls, setCompletedPolls] = useState<Poll[]>([])
   const [upcomingPolls, setUpcomingPolls] = useState<Poll[]>([])
@@ -33,8 +33,9 @@ export default function AdminDashboard() {
     if (!pollsLoaded.current) {
       const loadPolls = async () => {
         try {
-          const polls = await fetchPolls()
-          console.log(polls);
+          const polls = await fetchAdminPolls()
+          console.log("Polls:", polls)
+
 
           // Filter polls by status
           setActivePolls(polls.data.filter((poll) => poll.status === "ACTIVE"))
@@ -57,7 +58,7 @@ export default function AdminDashboard() {
 
       loadPolls()
     }
-  }, [fetchPolls])
+  }, [fetchAdminPolls])
 
   return (
     <div className="container mx-auto py-6 space-y-8 animate-fade-in">

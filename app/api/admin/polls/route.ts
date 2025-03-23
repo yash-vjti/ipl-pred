@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db, getPollsByStatus } from "@/lib/db"
 import { authenticate, authError } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -15,19 +15,21 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const status = searchParams.get("status")
-    const matchId = searchParams.get("matchId")
-    const search = searchParams.get("search") || ""
-    const page = Number.parseInt(searchParams.get("page") || "1")
-    const limit = Number.parseInt(searchParams.get("limit") || "10")
+    const status = searchParams.get("status") || "all"
+    const teamId = searchParams.get("teamId")
+    const limit = Number.parseInt(searchParams.get("limit") || "100")
+    const offset = Number.parseInt(searchParams.get("offset") || "0")
 
-    // Use the getAllPolls helper function
-    const result = await db.getAllPolls(page, limit, search, status || "", matchId || "")
+    const polls = await getPollsByStatus(status, teamId, limit, offset)
 
-    return NextResponse.json(result)
+
+    return NextResponse.json({
+      success: true,
+      data: polls,
+    })
   } catch (error) {
-    console.error("Admin get polls error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Error fetching polls:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch polls" }, { status: 500 })
   }
 }
 
